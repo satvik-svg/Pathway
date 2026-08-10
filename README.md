@@ -76,8 +76,6 @@ Client (Next.js)
     → Actions / Events  →  Functions (workflow engine)
 ```
 
-Design notes and permission rationale: [docs/WRITEUP.md](docs/WRITEUP.md).
-
 ---
 
 ## Repository layout
@@ -88,8 +86,6 @@ Design notes and permission rationale: [docs/WRITEUP.md](docs/WRITEUP.md).
 | `functions/` | Workflow engine and Action / event handlers |
 | `web/` | Next.js frontend |
 | `scripts/` | Seed data, metadata apply, evaluation harness |
-| `docs/` | Design write-up and demo notes |
-| `ASSIGNMENT.md` | Original product / assignment requirements |
 
 ---
 
@@ -153,17 +149,7 @@ A complete walkthrough typically shows:
 - A second organization that cannot see or trigger the first org’s data  
 - A viewer who can inspect but not run or approve  
 
-The in-app **Final Task** page and `docs/UI_DEMO.md` outline interview-oriented accounts and checks.
-
----
-
-## Design documentation
-
-| Document | Description |
-|----------|-------------|
-| [docs/WRITEUP.md](docs/WRITEUP.md) | Schema choices, permission layers, pause/resume, triggers |
-| [ASSIGNMENT.md](ASSIGNMENT.md) | Full requirements specification |
-| [docs/UI_DEMO.md](docs/UI_DEMO.md) | Demo accounts and UI tour |
+The in-app **Final Task** and **Interview** pages outline demo accounts and isolation checks.
 
 ---
 
