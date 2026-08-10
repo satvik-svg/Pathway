@@ -21,7 +21,6 @@ export function clearNhostLocalSession() {
       }
     }
     for (const k of keys) localStorage.removeItem(k);
-    // sessionStorage copies if any
     for (let i = sessionStorage.length - 1; i >= 0; i--) {
       const k = sessionStorage.key(i);
       if (k && /nhost/i.test(k)) sessionStorage.removeItem(k);
@@ -41,37 +40,18 @@ export async function forceSignOutLocal() {
 }
 
 /**
- * If the browser has a session, refresh it. On invalid/expired refresh token,
- * clear storage so the user can sign in cleanly.
+ * Do NOT call refreshSession proactively — that hits /v1/token and logs
+ * "could not find user by refresh token" when storage is half-stale.
+ * Only clear local state if we already know auth is broken.
  */
-export async function ensureFreshSession(): Promise<'ok' | 'none' | 'cleared'> {
-  const session = nhost.auth.getSession();
-  if (!session?.refreshToken && !session?.accessToken) {
-    return 'none';
-  }
-
-  try {
-    const res = await nhost.auth.refreshSession();
-    if (res.error) {
-      // Any refresh failure → start clean (invalid/expired refresh is unusable)
-      await forceSignOutLocal();
-      return 'cleared';
-    }
-    return 'ok';
-  } catch {
-    await forceSignOutLocal();
-    return 'cleared';
-  }
-}
-
 export function isAuthErrorMessage(message: string) {
   const m = message.toLowerCase();
   return (
     m.includes('invalid-refresh-token') ||
     m.includes('invalid or expired refresh') ||
+    m.includes('could not find user by refresh') ||
     m.includes('jwt expired') ||
     m.includes('invalid jwt') ||
-    m.includes('authentication') ||
     m.includes('unauthorized') ||
     m.includes('not authenticated')
   );

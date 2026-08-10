@@ -1,35 +1,38 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuthenticationStatus } from '@nhost/react';
-import { ensureFreshSession } from '@/lib/session';
+import { clearNhostLocalSession } from '@/lib/session';
 
 /**
- * On load: validate refresh token. If Nhost returns invalid-refresh-token,
- * clear local session and send user to /login (fixes org page half-logged-in state).
+ * Session hygiene without proactive refreshSession() (that causes
+ * "could not find user by refresh token" 401 noise on half-stale storage).
  */
 export function AuthSessionGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
   const router = useRouter();
   const pathname = usePathname();
-  const ran = useRef(false);
 
   useEffect(() => {
-    if (isLoading || ran.current) return;
-    if (pathname === '/login') return;
+    if (isLoading) return;
+    // Logged out: drop any leftover nhost keys so the next login is clean
+    if (!isAuthenticated) {
+      clearNhostLocalSession();
+    }
+  }, [isLoading, isAuthenticated]);
 
-    ran.current = true;
-    void (async () => {
-      // Only probe when client thinks we have a session
-      if (!isAuthenticated && !isLoading) return;
-
-      const result = await ensureFreshSession();
-      if (result === 'cleared') {
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || !/nhost|refresh/i.test(e.key)) return;
+      if (e.newValue == null && pathname !== '/login') {
         router.replace('/login?reason=session');
       }
-    })();
-  }, [isLoading, isAuthenticated, pathname, router]);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [pathname, router]);
 
   return <>{children}</>;
 }

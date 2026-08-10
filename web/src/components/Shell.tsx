@@ -11,8 +11,6 @@ const NAV = [
   { href: '/', label: 'Workflows' },
   { href: '/activity', label: 'Activity' },
   { href: '/org', label: 'Organization' },
-  { href: '/interview', label: 'Interview' },
-  { href: '/demo', label: 'Final Task' },
 ] as const;
 
 export function Shell({ children }: { children: React.ReactNode }) {

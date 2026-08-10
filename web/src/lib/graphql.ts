@@ -27,12 +27,13 @@ export async function gql<T = unknown>(
   try {
     json = text ? JSON.parse(text) : {};
   } catch {
-    // HTML error page or proxy failure — not a GraphQL JSON body
-    const snippet = text.slice(0, 80).replace(/\s+/g, ' ');
+    // HTML / wrong path (e.g. /v1/graphqlgraphql) — not a GraphQL JSON body
+    const url = getGraphqlUrl();
+    const snippet = text.slice(0, 60).replace(/\s+/g, ' ');
     throw new Error(
       res.status === 401 || res.status === 403
         ? 'Session expired — sign out and sign in again'
-        : `Server returned non-JSON (${res.status}): ${snippet}`
+        : `GraphQL bad response (${res.status}) at ${url}. Check Vercel NEXT_PUBLIC_NHOST_GRAPHQL_URL ends with /v1 (not /v1/graphql). Body: ${snippet}`
     );
   }
   if (!res.ok && !json.data) {

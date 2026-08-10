@@ -1,43 +1,12 @@
 'use client';
 
 import { NhostClient } from '@nhost/nhost-js';
+import { normalizeGraphqlUrl } from './graphqlUrl';
 
 const subdomain = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN || 'local';
 const region = process.env.NEXT_PUBLIC_NHOST_REGION || '';
 
-/**
- * Normalize GraphQL endpoint paths.
- *
- * Nhost Constellation GraphQL (`*.graphql.*.nhost.run`) serves at `/v1`.
- * Appending `/graphql` → `/v1/graphql` returns 404 on that host.
- * Classic Hasura (`*.hasura.*.nhost.run` or local) uses `/v1/graphql`.
- */
-export function normalizeGraphqlUrl(url: string) {
-  let trimmed = url.replace(/\/$/, '');
-  if (!trimmed) return trimmed;
-
-  const isConstellation =
-    trimmed.includes('.graphql.') && trimmed.includes('.nhost.run');
-
-  // Constellation: keep /v1; strip accidental /v1/graphql
-  if (isConstellation) {
-    if (trimmed.endsWith('/v1/graphql')) {
-      return trimmed.replace(/\/v1\/graphql$/, '/v1');
-    }
-    return trimmed;
-  }
-
-  // Classic Hasura / local: ensure /v1/graphql
-  if (trimmed.endsWith('/v1/graphql')) return trimmed;
-  if (
-    (trimmed.includes('local.hasura') || trimmed.includes('.hasura.')) &&
-    trimmed.endsWith('/v1')
-  ) {
-    return `${trimmed}/graphql`;
-  }
-
-  return trimmed;
-}
+export { normalizeGraphqlUrl };
 
 function buildNhost() {
   const authUrl = process.env.NEXT_PUBLIC_NHOST_AUTH_URL;
@@ -48,18 +17,10 @@ function buildNhost() {
   if (authUrl && rawGraphqlUrl) {
     const graphqlUrl = normalizeGraphqlUrl(rawGraphqlUrl);
     return new NhostClient({
-      authUrl,
+      authUrl: authUrl.replace(/\/$/, ''),
       graphqlUrl,
-      storageUrl:
-        storageUrl ||
-        graphqlUrl
-          .replace(/\/v1\/graphql$/, '/v1/storage')
-          .replace(/\/v1$/, '/v1/storage'),
-      functionsUrl:
-        functionsUrl ||
-        graphqlUrl
-          .replace(/\/v1\/graphql$/, '/v1/functions')
-          .replace(/\/v1$/, '/v1/functions'),
+      storageUrl: (storageUrl || '').replace(/\/$/, '') || undefined,
+      functionsUrl: (functionsUrl || '').replace(/\/$/, '') || undefined,
     } as ConstructorParameters<typeof NhostClient>[0]);
   }
 
@@ -74,7 +35,11 @@ export const nhost = buildNhost();
 export function getGraphqlUrl() {
   const fromEnv = process.env.NEXT_PUBLIC_NHOST_GRAPHQL_URL;
   if (fromEnv) return normalizeGraphqlUrl(fromEnv);
-  return normalizeGraphqlUrl(nhost.graphql.getUrl());
+  try {
+    return normalizeGraphqlUrl(nhost.graphql.getUrl());
+  } catch {
+    return '';
+  }
 }
 
 export function getFunctionsUrl() {
@@ -87,6 +52,5 @@ export function getFunctionsUrl() {
 
 export function getWsUrl() {
   const http = getGraphqlUrl();
-  // ws://host/v1/graphql → same path
   return http.replace(/^http/, 'ws');
 }

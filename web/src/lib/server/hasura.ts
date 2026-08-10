@@ -3,8 +3,10 @@
  * Env: NHOST_GRAPHQL_URL + NHOST_ADMIN_SECRET (or HASURA_* aliases)
  */
 
+import { normalizeGraphqlUrl } from '../graphqlUrl';
+
 function graphqlUrl() {
-  let raw =
+  const raw =
     process.env.NHOST_GRAPHQL_URL ||
     process.env.HASURA_GRAPHQL_URL ||
     process.env.NEXT_PUBLIC_NHOST_GRAPHQL_URL ||
@@ -14,21 +16,7 @@ function graphqlUrl() {
       'Missing NHOST_GRAPHQL_URL (set in Vercel env to your Nhost GraphQL endpoint)'
     );
   }
-  raw = raw.replace(/\/$/, '');
-  // Constellation (*.graphql.*.nhost.run) is /v1 — /v1/graphql 404s.
-  // Classic Hasura / local use /v1/graphql.
-  const isConstellation =
-    raw.includes('.graphql.') && raw.includes('.nhost.run');
-  if (isConstellation && raw.endsWith('/v1/graphql')) {
-    raw = raw.replace(/\/v1\/graphql$/, '/v1');
-  } else if (
-    !isConstellation &&
-    (raw.includes('local.hasura') || raw.includes('.hasura.')) &&
-    raw.endsWith('/v1')
-  ) {
-    raw = `${raw}/graphql`;
-  }
-  return raw;
+  return normalizeGraphqlUrl(raw);
 }
 
 function adminSecret() {

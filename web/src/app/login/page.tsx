@@ -36,7 +36,7 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     try {
-      // Drop any half-dead tokens before a clean login
+      // Soft clear only — avoid racing Nhost client mid-refresh
       clearNhostLocalSession();
       if (mode === 'signin') {
         const res = await signInEmailPassword(email, password);
@@ -53,7 +53,8 @@ function LoginForm() {
           return;
         }
       }
-      router.replace('/');
+      // Full navigation so providers remount with a clean session
+      window.location.href = '/';
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
