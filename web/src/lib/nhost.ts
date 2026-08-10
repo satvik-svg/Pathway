@@ -6,27 +6,33 @@ const subdomain = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN || 'local';
 const region = process.env.NEXT_PUBLIC_NHOST_REGION || '';
 
 /**
- * Nhost GraphQL (Hasura / Constellation) is at `/v1/graphql`.
- * System env sometimes shows `/v1` only — that 404s from the browser.
+ * Normalize GraphQL endpoint paths.
+ *
+ * Nhost Constellation GraphQL (`*.graphql.*.nhost.run`) serves at `/v1`.
+ * Appending `/graphql` → `/v1/graphql` returns 404 on that host.
+ * Classic Hasura (`*.hasura.*.nhost.run` or local) uses `/v1/graphql`.
  */
 export function normalizeGraphqlUrl(url: string) {
   let trimmed = url.replace(/\/$/, '');
   if (!trimmed) return trimmed;
 
-  // Already correct
-  if (trimmed.endsWith('/v1/graphql')) return trimmed;
+  const isConstellation =
+    trimmed.includes('.graphql.') && trimmed.includes('.nhost.run');
 
-  // ...graphql...nhost.run/v1  →  .../v1/graphql
-  if (
-    trimmed.includes('.graphql.') &&
-    trimmed.includes('.nhost.run') &&
-    trimmed.endsWith('/v1')
-  ) {
-    return `${trimmed}/graphql`;
+  // Constellation: keep /v1; strip accidental /v1/graphql
+  if (isConstellation) {
+    if (trimmed.endsWith('/v1/graphql')) {
+      return trimmed.replace(/\/v1\/graphql$/, '/v1');
+    }
+    return trimmed;
   }
 
-  // Local Hasura classic
-  if (trimmed.includes('local.hasura') && trimmed.endsWith('/v1')) {
+  // Classic Hasura / local: ensure /v1/graphql
+  if (trimmed.endsWith('/v1/graphql')) return trimmed;
+  if (
+    (trimmed.includes('local.hasura') || trimmed.includes('.hasura.')) &&
+    trimmed.endsWith('/v1')
+  ) {
     return `${trimmed}/graphql`;
   }
 

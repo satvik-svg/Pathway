@@ -15,15 +15,17 @@ function graphqlUrl() {
     );
   }
   raw = raw.replace(/\/$/, '');
-  // Ensure .../v1/graphql (Nhost system env often shows /v1 only → 404)
-  if (
-    raw.includes('.graphql.') &&
-    raw.includes('.nhost.run') &&
+  // Constellation (*.graphql.*.nhost.run) is /v1 — /v1/graphql 404s.
+  // Classic Hasura / local use /v1/graphql.
+  const isConstellation =
+    raw.includes('.graphql.') && raw.includes('.nhost.run');
+  if (isConstellation && raw.endsWith('/v1/graphql')) {
+    raw = raw.replace(/\/v1\/graphql$/, '/v1');
+  } else if (
+    !isConstellation &&
+    (raw.includes('local.hasura') || raw.includes('.hasura.')) &&
     raw.endsWith('/v1')
   ) {
-    raw = `${raw}/graphql`;
-  }
-  if (raw.includes('local.hasura') && raw.endsWith('/v1')) {
     raw = `${raw}/graphql`;
   }
   return raw;

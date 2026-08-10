@@ -1,4 +1,12 @@
 [global]
+# Set GROQ_API_KEY in Nhost → Settings → Secrets (not committed here).
+[[global.environment]]
+name = 'GROQ_API_KEY'
+value = '{{ secrets.GROQ_API_KEY }}'
+
+[[global.environment]]
+name = 'LLM_STUB'
+value = 'false'
 
 [hasura]
 version = 'v2.48.10-ce'
@@ -38,12 +46,7 @@ mode = 'disabled'
 
 [auth.redirections]
 clientUrl = 'https://pathway-coral.vercel.app'
-allowedUrls = [
-  'https://pathway-coral.vercel.app',
-  'https://pathway-coral.vercel.app/**',
-  'http://localhost:3000',
-  'http://localhost:3000/**',
-]
+allowedUrls = ['https://pathway-coral.vercel.app', 'https://pathway-coral.vercel.app/**', 'http://localhost:3000', 'http://localhost:3000/**']
 
 [auth.signUp]
 enabled = true

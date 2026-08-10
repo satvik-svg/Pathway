@@ -175,14 +175,16 @@ Set environment variables (Production), then redeploy:
 | `NEXT_PUBLIC_NHOST_SUBDOMAIN` | your Nhost subdomain |
 | `NEXT_PUBLIC_NHOST_REGION` | e.g. `ap-south-1` |
 | `NEXT_PUBLIC_NHOST_AUTH_URL` | `https://<sub>.auth.<region>.nhost.run/v1` |
-| `NEXT_PUBLIC_NHOST_GRAPHQL_URL` | `https://<sub>.graphql.<region>.nhost.run/v1` |
+| `NEXT_PUBLIC_NHOST_GRAPHQL_URL` | `https://<sub>.graphql.<region>.nhost.run/v1` (**not** `/v1/graphql`) |
 | `NEXT_PUBLIC_NHOST_STORAGE_URL` | `https://<sub>.storage.<region>.nhost.run/v1` |
 | `NEXT_PUBLIC_NHOST_FUNCTIONS_URL` | `https://<sub>.functions.<region>.nhost.run/v1` |
-| `NHOST_GRAPHQL_URL` | **Same as GraphQL URL** (server-only; required for create-org) |
+| `NHOST_GRAPHQL_URL` | **Same** Constellation URL ending in `/v1` (server-only; create-org) |
 | `NHOST_ADMIN_SECRET` | **Hasura admin secret** from Nhost (server-only; required) |
 | `NHOST_FUNCTIONS_URL` | Functions base (optional; for engine proxy until fully on Vercel) |
 
-**Critical:** Create organization runs **on Vercel** and needs `NHOST_GRAPHQL_URL` + `NHOST_ADMIN_SECRET`. Without them you get 500 / “Unhandled”.
+**GraphQL path:** Constellation (`*.graphql.*.nhost.run`) uses **`/v1`**. Using `/v1/graphql` returns **404**. Copy the GraphQL URL from Nhost **Project settings → Environment variables** (system), not the legacy Hasura host unless you know you need it.
+
+**Critical:** Create organization runs **on Vercel** and needs `NHOST_GRAPHQL_URL` + `NHOST_ADMIN_SECRET` as **Vercel** env vars (not only Nhost function secrets). Without them you get 500 / “Unhandled”.
 
 Do **not** point server env at `localhost` or `local.functions` on Vercel.
 
