@@ -161,6 +161,12 @@ The in-app **Final Task** and **Interview** pages outline demo accounts and isol
 
 ---
 
+## Project status
+
+This repository contains a working end-to-end implementation of the workflow builder: multi-org auth, visual canvas, execution engine with pause/approve, multiple triggers, and an activity feed for notifications and database saves. Local development typically runs the Next.js app against Nhost (or Docker Hasura) plus the Node functions server.
+
+---
+
 ## License
 
 Intended for assignment, portfolio, and educational use.
