@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* React Flow / n8n-style canvas */
+.workflow-canvas .react-flow__attribution {
+  display: none;
+}
+.workflow-canvas .react-flow__controls-button {
+  background: #18181b !important;
+  border-bottom-color: #3f3f46 !important;
+  fill: #a1a1aa !important;
+}
+.workflow-canvas .react-flow__controls-button:hover {
+  background: #27272a !important;
+}
+.workflow-canvas .react-flow__edge-text {
+  fill: #a1a1aa;
+  font-size: 10px;
+}
+.workflow-canvas .react-flow__edge-textbg {
+  fill: #09090b;
+}
