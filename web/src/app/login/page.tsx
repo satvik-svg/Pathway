@@ -138,9 +138,23 @@ function LoginForm() {
             : 'Have an account? Sign in'}
         </button>
 
-        <div className="mt-6 pt-4 border-t border-zinc-800">
-          <p className="text-[11px] text-zinc-500 mb-2 text-center">
-            Interviewer demo accounts (password: password123)
+        <div className="mt-6 pt-4 border-t border-zinc-800 space-y-2">
+          <p className="text-[11px] text-zinc-400 text-center leading-relaxed">
+            <span className="text-zinc-200 font-medium">Production:</span> use{' '}
+            <button
+              type="button"
+              className="text-emerald-400 underline-offset-2 hover:underline"
+              onClick={() => setMode('signup')}
+            >
+              Sign up
+            </button>{' '}
+            with any email — demo chips below only work on{' '}
+            <span className="text-zinc-300">local Nhost after seed</span>, not
+            on cloud.
+          </p>
+          <p className="text-[10px] text-zinc-600 text-center">
+            Local seed fill (password: password123) — will fail on Vercel unless
+            you created these users
           </p>
           <div className="grid grid-cols-2 gap-1.5">
             {[
@@ -152,7 +166,7 @@ function LoginForm() {
               <button
                 key={em}
                 type="button"
-                className="text-[10px] text-zinc-400 hover:text-emerald-400 border border-zinc-800 rounded px-1.5 py-1 truncate"
+                className="text-[10px] text-zinc-500 hover:text-zinc-300 border border-zinc-800 rounded px-1.5 py-1 truncate"
                 onClick={() => {
                   setMode('signin');
                   setEmail(em);
