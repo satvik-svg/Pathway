@@ -110,7 +110,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </span>
               <button
                 onClick={async () => {
-                  await signOut();
+                  try {
+                    await signOut();
+                  } catch {
+                    /* ignore */
+                  }
+                  // Only clear storage after explicit sign-out
                   clearNhostLocalSession();
                   router.replace('/login');
                 }}

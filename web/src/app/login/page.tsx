@@ -3,7 +3,7 @@
 import { FormEvent, Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignInEmailPassword, useSignUpEmailPassword } from '@nhost/react';
-import { clearNhostLocalSession } from '@/lib/session';
+import { nhost } from '@/lib/nhost';
 
 function LoginForm() {
   const router = useRouter();
@@ -16,10 +16,16 @@ function LoginForm() {
 
   useEffect(() => {
     if (search.get('reason') === 'session') {
-      clearNhostLocalSession();
       setInfo('Your session expired. Please sign in again.');
     }
   }, [search]);
+
+  // Already signed in → leave login
+  useEffect(() => {
+    if (nhost.auth.getSession()?.accessToken) {
+      router.replace('/');
+    }
+  }, [router]);
 
   const {
     signInEmailPassword,
@@ -36,8 +42,7 @@ function LoginForm() {
     e.preventDefault();
     setError(null);
     try {
-      // Soft clear only — avoid racing Nhost client mid-refresh
-      clearNhostLocalSession();
+      // Do NOT wipe localStorage here — it races Nhost token write / refresh.
       if (mode === 'signin') {
         const res = await signInEmailPassword(email, password);
         if (res.isError || res.error) {
@@ -53,8 +58,7 @@ function LoginForm() {
           return;
         }
       }
-      // Full navigation so providers remount with a clean session
-      window.location.href = '/';
+      router.replace('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     }
