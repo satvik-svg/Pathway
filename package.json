@@ -1,0 +1,16 @@
+{
+  "name": "chain-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI Agent Workflow Builder — nhost + Hasura + Next.js",
+  "scripts": {
+    "dev:web": "npm --prefix web run dev",
+    "build:web": "npm --prefix web run build",
+    "dev:functions": "node functions/local-server.mjs",
+    "seed": "node scripts/seed.mjs",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "hasura:apply": "node scripts/apply-hasura-metadata.mjs",
+    "eval": "node scripts/eval-final-task.mjs"
+  }
+}

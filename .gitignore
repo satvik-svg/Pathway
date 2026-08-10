@@ -1,0 +1,20 @@
+
+.DS_Store
+.env
+.env.local
+.env*.local
+.next/
+.nhost/
+.secrets
+.vercel
+*.log
+# secrets & local
+coverage/
+dist/
+functions/.env
+functions/node_modules/
+node_modules/
+scripts/**/*.local.*
+web/.env.local
+web/.next/
+web/node_modules/

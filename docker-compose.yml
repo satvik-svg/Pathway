@@ -1,0 +1,48 @@
+# Optional local stack (Postgres + Hasura) when not using `nhost up`.
+# Auth is simpler with nhost cloud/local CLI; this stack is for schema + Actions testing.
+#
+#   docker compose up -d
+#   # apply migration:
+#   docker compose exec postgres psql -U postgres -d postgres -f /docker-entrypoint-initdb.d/01_init.sql
+#
+# Then run functions:
+#   cd functions && npm i && \
+#   NHOST_GRAPHQL_URL=http://localhost:8080/v1/graphql \
+#   NHOST_ADMIN_SECRET=devadminsecret \
+#   LLM_STUB=true node local-server.mjs
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./nhost/migrations/default/1765380000000_init/up.sql:/docker-entrypoint-initdb.d/01_init.sql:ro
+
+  graphql-engine:
+    image: hasura/graphql-engine:v2.42.0
+    ports:
+      - '8080:8080'
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+      HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
+      HASURA_GRAPHQL_DEV_MODE: 'true'
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      HASURA_GRAPHQL_ADMIN_SECRET: devadminsecret
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
+      # Dev JWT — match whatever you configure in a mock auth, or use admin secret for tests
+      HASURA_GRAPHQL_JWT_SECRET: '{"type":"HS256","key":"dev-jwt-secret-key-at-least-32-chars!"}'
+      NHOST_FUNCTIONS_URL: http://host.docker.internal:4001
+      NHOST_WEBHOOK_SECRET: dev-webhook-secret
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+
+volumes:
+  pgdata:
