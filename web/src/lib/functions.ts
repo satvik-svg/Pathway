@@ -44,6 +44,17 @@ export async function callFunction<T = Record<string, unknown>>(
   });
 
   const text = await res.text();
+  const contentType = res.headers.get('content-type') || '';
+  // Next.js HTML error pages → never bubble SyntaxError "Unexpected token '<'"
+  if (
+    contentType.includes('text/html') ||
+    text.trimStart().startsWith('<!') ||
+    text.trimStart().startsWith('<html')
+  ) {
+    throw new Error(
+      `API returned HTML (${res.status}) for ${url}. Check deploy / route exists.`
+    );
+  }
   let json: Record<string, unknown>;
   try {
     json = text ? JSON.parse(text) : {};
@@ -51,7 +62,7 @@ export async function callFunction<T = Record<string, unknown>>(
     throw new Error(
       res.status === 401
         ? 'Session expired — sign out and sign in again'
-        : `Server returned non-JSON (${res.status}): ${text.slice(0, 80)}`
+        : `API returned non-JSON (${res.status}) for ${url}`
     );
   }
   if (!res.ok && !('success' in json)) {

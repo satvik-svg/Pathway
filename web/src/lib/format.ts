@@ -7,10 +7,13 @@ export function formatMessage(value: unknown): string {
     const o = value as Record<string, unknown>;
     if (typeof o.message === 'string') return o.message;
     if (typeof o.error === 'string' && typeof o.message !== 'string') {
-      // { error: 'invalid-refresh-token', message: '...' } already handled above
       return String(o.error);
     }
-    if (Array.isArray(o) && o[0] && typeof (o[0] as { message?: string }).message === 'string') {
+    if (
+      Array.isArray(o) &&
+      o[0] &&
+      typeof (o[0] as { message?: string }).message === 'string'
+    ) {
       return (o as { message: string }[]).map((e) => e.message).join('; ');
     }
     try {
@@ -23,8 +26,8 @@ export function formatMessage(value: unknown): string {
 }
 
 /**
- * Nhost session/token noise — not useful to show as a red banner.
- * (Logged-out refresh attempts, single-use token races, etc.)
+ * Transient / config noise — do not show as red banners.
+ * Includes session refresh failures and HTML-instead-of-JSON parse errors.
  */
 export function isSessionNoiseMessage(value: unknown): boolean {
   const m = formatMessage(value).toLowerCase();
@@ -37,7 +40,19 @@ export function isSessionNoiseMessage(value: unknown): boolean {
       (m.includes('invalid') ||
         m.includes('expired') ||
         m.includes('not found'))) ||
-    m === 'invalid-refresh-token'
+    // HTML page returned where JSON expected (wrong GraphQL URL, Next 404 HTML, etc.)
+    m.includes('unexpected token') ||
+    m.includes('is not valid json') ||
+    m.includes('unexpected end of json') ||
+    m.includes('<!doctype') ||
+    m.includes('<html') ||
+    m.includes('server returned non-json') ||
+    m.includes('graphql bad response') ||
+    m.includes('graphql non-json') ||
+    m.includes('graphql got html') ||
+    m.includes('api returned html') ||
+    m.includes('api returned non-json') ||
+    m.includes('returned non-json')
   );
 }
 

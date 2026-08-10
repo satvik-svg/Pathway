@@ -2,12 +2,7 @@
 
 /**
  * IMPORTANT: Use NhostClient from `@nhost/react`, not `@nhost/nhost-js`.
- *
- * The React client is constructed with `start: false` so only <NhostProvider>
- * starts the auth machine. Using the vanilla client starts auth twice, which
- * double-spends the single-use refresh token and produces:
- *   POST /v1/token → 401 invalid-refresh-token
- * even in a fresh incognito window right after login.
+ * React client uses `start: false` so only <NhostProvider> starts auth once.
  */
 import { NhostClient } from '@nhost/react';
 import { normalizeGraphqlUrl } from './graphqlUrl';
@@ -17,14 +12,42 @@ const region = process.env.NEXT_PUBLIC_NHOST_REGION || '';
 
 export { normalizeGraphqlUrl };
 
+/** Always produce a working Constellation GraphQL URL when possible. */
+export function resolveGraphqlUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_NHOST_GRAPHQL_URL;
+  if (fromEnv) {
+    const n = normalizeGraphqlUrl(fromEnv);
+    // Never use a Vercel/HTML page as GraphQL (causes Unexpected token '<')
+    if (
+      n &&
+      !n.includes('vercel.app') &&
+      (n.includes('nhost.run') ||
+        n.includes('localhost') ||
+        n.includes('local.hasura') ||
+        n.includes('127.0.0.1'))
+    ) {
+      return n;
+    }
+  }
+
+  if (subdomain && subdomain !== 'local' && region) {
+    return `https://${subdomain}.graphql.${region}.nhost.run/v1`;
+  }
+
+  if (subdomain === 'local' || !subdomain) {
+    return 'http://local.hasura.nhost.run:1337/v1/graphql';
+  }
+
+  return '';
+}
+
 function buildNhost() {
   const authUrl = process.env.NEXT_PUBLIC_NHOST_AUTH_URL;
-  const rawGraphqlUrl = process.env.NEXT_PUBLIC_NHOST_GRAPHQL_URL;
+  const graphqlUrl = resolveGraphqlUrl();
   const storageUrl = process.env.NEXT_PUBLIC_NHOST_STORAGE_URL;
   const functionsUrl = process.env.NEXT_PUBLIC_NHOST_FUNCTIONS_URL;
 
-  if (authUrl && rawGraphqlUrl) {
-    const graphqlUrl = normalizeGraphqlUrl(rawGraphqlUrl);
+  if (authUrl && graphqlUrl) {
     return new NhostClient({
       authUrl: authUrl.replace(/\/$/, ''),
       graphqlUrl,
@@ -42,13 +65,7 @@ function buildNhost() {
 export const nhost = buildNhost();
 
 export function getGraphqlUrl() {
-  const fromEnv = process.env.NEXT_PUBLIC_NHOST_GRAPHQL_URL;
-  if (fromEnv) return normalizeGraphqlUrl(fromEnv);
-  try {
-    return normalizeGraphqlUrl(nhost.graphql.getUrl());
-  } catch {
-    return '';
-  }
+  return resolveGraphqlUrl();
 }
 
 export function getFunctionsUrl() {

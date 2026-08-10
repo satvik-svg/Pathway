@@ -8,16 +8,44 @@ export async function gql<T = unknown>(
   query: string,
   variables?: Record<string, unknown>
 ): Promise<T> {
+  const url = getGraphqlUrl();
+  if (!url) {
+    throw new Error(
+      'GraphQL URL not configured. Set NEXT_PUBLIC_NHOST_GRAPHQL_URL to https://<sub>.graphql.<region>.nhost.run/v1'
+    );
+  }
+
   const token = nhost.auth.getAccessToken();
-  const res = await fetch(getGraphqlUrl(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({ query, variables }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+  } catch (e) {
+    throw new Error(
+      `GraphQL network error: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+
   const text = await res.text();
+  const contentType = res.headers.get('content-type') || '';
+
+  // HTML (Next 404, wrong host) — never surface raw JSON.parse SyntaxError
+  if (
+    contentType.includes('text/html') ||
+    text.trimStart().startsWith('<!') ||
+    text.trimStart().startsWith('<html')
+  ) {
+    throw new Error(
+      `GraphQL got HTML instead of JSON (${res.status}). URL=${url}. Set Vercel NEXT_PUBLIC_NHOST_GRAPHQL_URL to …graphql…/v1 and redeploy.`
+    );
+  }
+
   let json: {
     data?: T;
     errors?: { message: string }[];
@@ -27,22 +55,22 @@ export async function gql<T = unknown>(
   try {
     json = text ? JSON.parse(text) : {};
   } catch {
-    // HTML / wrong path (e.g. /v1/graphqlgraphql) — not a GraphQL JSON body
-    const url = getGraphqlUrl();
-    const snippet = text.slice(0, 60).replace(/\s+/g, ' ');
     throw new Error(
       res.status === 401 || res.status === 403
         ? 'Session expired — sign out and sign in again'
-        : `GraphQL bad response (${res.status}) at ${url}. Check Vercel NEXT_PUBLIC_NHOST_GRAPHQL_URL ends with /v1 (not /v1/graphql). Body: ${snippet}`
+        : `GraphQL non-JSON (${res.status}) at ${url}`
     );
   }
+
   if (!res.ok && !json.data) {
     throw new Error(
       json.error || json.message || `GraphQL HTTP ${res.status}`
     );
   }
   if (json.errors?.length) {
-    throw new Error(json.errors.map((e) => e.message).join('; '));
+    throw new Error(
+      json.errors.map((e) => e.message).join('; ')
+    );
   }
   if (json.data == null) {
     throw new Error('GraphQL returned no data');
@@ -61,7 +89,6 @@ function getWsClient(): Client {
     shouldRetry: () => true,
     connectionParams: () => {
       const token = nhost.auth.getAccessToken();
-      // Hasura graphql-ws expects auth in connection_init payload headers
       return {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -97,7 +124,9 @@ export function subscribe<T = unknown>(
       },
       error: (err) => {
         if (!active) return;
-        onError?.(new Error(formatMessage(err)));
+        onError?.(
+          err instanceof Error ? err : new Error(formatMessage(err))
+        );
       },
       complete: () => {},
     }
