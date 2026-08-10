@@ -4,7 +4,7 @@
  */
 
 function graphqlUrl() {
-  const raw =
+  let raw =
     process.env.NHOST_GRAPHQL_URL ||
     process.env.HASURA_GRAPHQL_URL ||
     process.env.NEXT_PUBLIC_NHOST_GRAPHQL_URL ||
@@ -14,8 +14,19 @@ function graphqlUrl() {
       'Missing NHOST_GRAPHQL_URL (set in Vercel env to your Nhost GraphQL endpoint)'
     );
   }
-  // Cloud GraphQL is often .../v1 not .../v1/graphql
-  return raw.replace(/\/$/, '');
+  raw = raw.replace(/\/$/, '');
+  // Ensure .../v1/graphql (Nhost system env often shows /v1 only → 404)
+  if (
+    raw.includes('.graphql.') &&
+    raw.includes('.nhost.run') &&
+    raw.endsWith('/v1')
+  ) {
+    raw = `${raw}/graphql`;
+  }
+  if (raw.includes('local.hasura') && raw.endsWith('/v1')) {
+    raw = `${raw}/graphql`;
+  }
+  return raw;
 }
 
 function adminSecret() {
