@@ -18,3 +18,7 @@ scripts/**/*.local.*
 web/.env.local
 web/.next/
 web/node_modules/
+
+# assignment & internal docs
+ASSIGNMENT.md
+docs/
