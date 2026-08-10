@@ -37,7 +37,13 @@ version = '0.49.1'
 mode = 'disabled'
 
 [auth.redirections]
-clientUrl = 'http://localhost:3000'
+clientUrl = 'https://pathway-coral.vercel.app'
+allowedUrls = [
+  'https://pathway-coral.vercel.app',
+  'https://pathway-coral.vercel.app/**',
+  'http://localhost:3000',
+  'http://localhost:3000/**',
+]
 
 [auth.signUp]
 enabled = true

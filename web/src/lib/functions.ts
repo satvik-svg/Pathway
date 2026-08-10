@@ -4,9 +4,17 @@ import { getFunctionsUrl, nhost } from './nhost';
 import { formatMessage } from './format';
 
 /**
- * Call Nhost / local Action handlers with Hasura-style session payload.
- * Uses NEXT_PUBLIC_NHOST_FUNCTIONS_URL in production (not localhost).
+ * Call Action handlers via same-origin Next.js proxy when in the browser
+ * (avoids Nhost Functions CORS). Server-side can hit the functions URL directly.
  */
+function resolveFunctionsBase() {
+  if (typeof window !== 'undefined') {
+    // Browser: always go through Next proxy → no CORS
+    return '/api/functions';
+  }
+  return getFunctionsUrl();
+}
+
 export async function callFunction<T = Record<string, unknown>>(
   path: string,
   input: Record<string, unknown> = {}
@@ -14,8 +22,9 @@ export async function callFunction<T = Record<string, unknown>>(
   const user = nhost.auth.getUser();
   const token = nhost.auth.getAccessToken();
   const userId = user?.id;
-  const base = getFunctionsUrl();
-  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  const base = resolveFunctionsBase();
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `${base}${cleanPath}`;
 
   const res = await fetch(url, {
     method: 'POST',
@@ -43,6 +52,9 @@ export async function callFunction<T = Record<string, unknown>>(
   }
   if (!res.ok && !('success' in json)) {
     throw new Error(formatMessage(json.message || json));
+  }
+  if (json.success === false && json.message) {
+    throw new Error(formatMessage(json.message));
   }
   return json as T;
 }

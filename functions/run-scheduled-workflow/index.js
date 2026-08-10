@@ -1,4 +1,4 @@
-import { adminGql, getUserIdFromRequest, ok, fail } from '../_lib/hasura.js';
+import { adminGql, getUserIdFromRequest, ok, fail, corsPreflight } from '../_lib/hasura.js';
 import { createAndStartRun, getMembership, canTrigger } from '../_lib/engine.js';
 
 /**
@@ -7,7 +7,7 @@ import { createAndStartRun, getMembership, canTrigger } from '../_lib/engine.js'
  * Also verifies caller is owner/editor when session present.
  */
 export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
+  if (req.method === 'OPTIONS') return corsPreflight();
 
   try {
     const body = await req.json();

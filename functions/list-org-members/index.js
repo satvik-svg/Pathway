@@ -1,4 +1,4 @@
-import { getUserIdFromRequest, ok, fail } from '../_lib/hasura.js';
+import { getUserIdFromRequest, ok, fail, corsPreflight } from '../_lib/hasura.js';
 import { adminGql } from '../_lib/hasura.js';
 
 function adminSecret() {
@@ -39,7 +39,7 @@ async function runSql(sql) {
  * List org members with emails. Caller must be a member of the org.
  */
 export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
+  if (req.method === 'OPTIONS') return corsPreflight();
 
   try {
     const body = await req.json();

@@ -153,11 +153,40 @@ The in-app **Final Task** and **Interview** pages outline demo accounts and isol
 
 ---
 
-## Deployment
+## Deployment (Vercel + Nhost Cloud)
 
-1. Deploy the Nhost project (`nhost/` migrations, metadata, and functions).  
-2. Deploy the `web/` app (for example Vercel) with public Nhost configuration.  
-3. Configure production secrets for LLM and optional notification delivery.  
+The browser talks only to your Vercel app. Org/actions go through  
+`https://your-app.vercel.app/api/functions/...`, which **proxies** to Nhost Functions  
+(so you avoid CORS on `*.functions.*.nhost.run`).
+
+### 1. Nhost
+
+- Deploy / link the `nhost/` folder (migrations, metadata, functions).  
+- In **Auth → Settings**, allow redirect URLs for your Vercel domain  
+  (this repo’s `nhost.toml` includes `https://pathway-coral.vercel.app`).  
+- Set **function secrets**: `NHOST_GRAPHQL_URL`, `NHOST_ADMIN_SECRET`, optional `GROQ_API_KEY`.
+
+### 2. Vercel (`web/`)
+
+Set environment variables (Production), then redeploy:
+
+| Variable | Example |
+|----------|---------|
+| `NEXT_PUBLIC_NHOST_SUBDOMAIN` | your Nhost subdomain |
+| `NEXT_PUBLIC_NHOST_REGION` | e.g. `ap-south-1` |
+| `NEXT_PUBLIC_NHOST_AUTH_URL` | `https://<sub>.auth.<region>.nhost.run/v1` |
+| `NEXT_PUBLIC_NHOST_GRAPHQL_URL` | `https://<sub>.graphql.<region>.nhost.run/v1` |
+| `NEXT_PUBLIC_NHOST_STORAGE_URL` | `https://<sub>.storage.<region>.nhost.run/v1` |
+| `NEXT_PUBLIC_NHOST_FUNCTIONS_URL` | `https://<sub>.functions.<region>.nhost.run/v1` |
+| `NHOST_FUNCTIONS_URL` | **Same functions base** (server-only; required for the proxy) |
+
+Do **not** point Vercel’s `NHOST_FUNCTIONS_URL` at `localhost` or `local.functions`.
+
+### 3. After deploy
+
+1. Open the Vercel URL and sign up / sign in.  
+2. Create an organization (Network tab should show `POST /api/functions/create-organization`, not a CORS error on `nhost.run`).  
+3. If auth returns 401, clear site data and sign in again after redirect URLs are updated.  
 
 ---
 

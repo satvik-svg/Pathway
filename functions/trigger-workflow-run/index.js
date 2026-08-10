@@ -1,4 +1,4 @@
-import { getUserIdFromRequest, ok, fail } from '../_lib/hasura.js';
+import { getUserIdFromRequest, ok, fail, corsPreflight } from '../_lib/hasura.js';
 import { createAndStartRun } from '../_lib/engine.js';
 
 /**
@@ -7,7 +7,7 @@ import { createAndStartRun } from '../_lib/engine.js';
  */
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
+    return corsPreflight();
   }
 
   try {

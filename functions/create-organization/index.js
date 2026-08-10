@@ -1,10 +1,10 @@
-import { adminGql, getUserIdFromRequest, ok, fail } from '../_lib/hasura.js';
+import { adminGql, getUserIdFromRequest, ok, fail, corsPreflight } from '../_lib/hasura.js';
 
 /**
  * Create an organization and make the caller owner.
  */
 export default async function handler(req) {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
+  if (req.method === 'OPTIONS') return corsPreflight();
 
   try {
     const body = await req.json();

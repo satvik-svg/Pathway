@@ -1,4 +1,4 @@
-import { adminGql, ok, fail } from '../_lib/hasura.js';
+import { adminGql, ok, fail, corsPreflight } from '../_lib/hasura.js';
 import { createAndStartRun } from '../_lib/engine.js';
 
 const FIND_TRIGGER = `
@@ -25,7 +25,7 @@ const FIND_TRIGGER = `
  */
 export default async function handler(req) {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
+    return corsPreflight();
   }
 
   try {
