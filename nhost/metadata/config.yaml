@@ -1,0 +1,7 @@
+version: 3
+endpoint: http://localhost:8080
+admin_secret: devadminsecret
+metadata_directory: .
+actions:
+  kind: synchronous
+  handler_webhook_baseurl: http://localhost:4001

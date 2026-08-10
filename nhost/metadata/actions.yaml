@@ -1,0 +1,40 @@
+actions:
+  - name: triggerWorkflowRun
+    definition:
+      kind: synchronous
+      handler: '{{NHOST_FUNCTIONS_URL}}/trigger-workflow-run'
+      forward_client_headers: true
+      timeout: 300
+    permissions:
+      - role: user
+    comment: Start a workflow run after org/role + quota checks
+  - name: approveStep
+    definition:
+      kind: synchronous
+      handler: '{{NHOST_FUNCTIONS_URL}}/approve-step'
+      forward_client_headers: true
+      timeout: 300
+    permissions:
+      - role: user
+    comment: Resume a paused approval_gate after role check
+  - name: webhookStartRun
+    definition:
+      kind: synchronous
+      handler: '{{NHOST_FUNCTIONS_URL}}/webhook-trigger'
+      forward_client_headers: true
+      timeout: 300
+    permissions:
+      - role: public
+      - role: user
+    comment: Inbound webhook endpoint to start a run by secret
+custom_types:
+  enums: []
+  input_objects:
+    - name: TriggerWorkflowRunInput
+    - name: ApproveStepInput
+    - name: WebhookStartRunInput
+  objects:
+    - name: TriggerWorkflowRunOutput
+    - name: ApproveStepOutput
+    - name: WebhookStartRunOutput
+  scalars: []

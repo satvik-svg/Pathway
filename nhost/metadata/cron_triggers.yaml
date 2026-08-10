@@ -1,0 +1,14 @@
+- name: scheduled_workflow_runner
+  webhook: '{{NHOST_FUNCTIONS_URL}}/scheduled-runner'
+  schedule: '*/5 * * * *'
+  include_in_metadata: true
+  payload: {}
+  retry_conf:
+    num_retries: 1
+    retry_interval_seconds: 30
+    timeout_seconds: 180
+    tolerance_seconds: 120
+  headers:
+    - name: x-nhost-webhook-secret
+      value_from_env: NHOST_WEBHOOK_SECRET
+  comment: Poll scheduled workflow triggers every 5 minutes

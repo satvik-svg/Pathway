@@ -1,0 +1,8 @@
+table:
+  name: org_usage_stats
+  schema: public
+# Aggregation view for dashboards.
+# Isolation: the app queries this only for the user's current org_id after
+# membership is verified via organizations/org_members. Direct open select
+# is disabled for role user; service role / admin used by Actions can read all.
+# Frontend uses organizations.quota_* + workflow_runs_aggregate for live UI.
