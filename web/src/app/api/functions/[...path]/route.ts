@@ -4,11 +4,19 @@ import {
   handleListOrgMembers,
   handleManageOrgMember,
 } from '@/lib/server/orgHandlers';
+import {
+  handleTriggerWorkflowRun,
+  handleApproveStep,
+} from '@/lib/server/workflowHandlers';
+
+/** Workflow runs may call LLM — allow longer than default on Pro; Hobby caps lower. */
+export const maxDuration = 60;
+export const runtime = 'nodejs';
 
 /**
  * Browser → same-origin /api/functions/<name>
  *
- * Org endpoints run on Vercel (reliable).
+ * Org + run/approve run on Vercel (avoids Nhost lambda "Unhandled").
  * Other paths proxy to Nhost Functions / local engine if configured.
  */
 
@@ -16,6 +24,8 @@ const LOCAL_HANDLERS = new Set([
   'create-organization',
   'list-org-members',
   'manage-org-member',
+  'trigger-workflow-run',
+  'approve-step',
 ]);
 
 function functionsBase() {
@@ -52,6 +62,12 @@ async function runLocal(
     }
     if (name === 'manage-org-member') {
       return await handleManageOrgMember(auth, body);
+    }
+    if (name === 'trigger-workflow-run') {
+      return await handleTriggerWorkflowRun(auth, body);
+    }
+    if (name === 'approve-step') {
+      return await handleApproveStep(auth, body);
     }
     return {
       status: 404,
@@ -166,13 +182,13 @@ export async function POST(
     );
   }
 
-  // Org management: always on Vercel (fixes Nhost "Unhandled" lambda)
+  // Org + trigger/approve: always on Vercel (fixes Nhost "Unhandled" lambda)
   if (LOCAL_HANDLERS.has(name)) {
     const result = await runLocal(name, auth, body);
     return NextResponse.json(result.data, { status: result.status });
   }
 
-  // Workflow engine still on Nhost functions / local until fully ported
+  // Webhooks / scheduled / notify may still proxy to Nhost Functions
   return proxyToNhost(req, name, bodyText);
 }
 

@@ -9,6 +9,7 @@ import {
   STEP_RUNS_SUB,
   subscribe,
 } from '@/lib/graphql';
+import { callFunction } from '@/lib/functions';
 import { formatMessage } from '@/lib/format';
 import {
   STATUS_LABEL,
@@ -130,10 +131,19 @@ export function RunViewer({ runId }: { runId: string }) {
     setApproving(stepRunId);
     setMsg(null);
     try {
-      const data = await gql<{
-        approveStep: { success: boolean; message: string; status: string };
-      }>(APPROVE_STEP, { step_run_id: stepRunId });
-      setMsg(formatMessage(data.approveStep.message));
+      try {
+        const data = await callFunction<{
+          success: boolean;
+          message: string;
+          status: string;
+        }>('/approve-step', { step_run_id: stepRunId });
+        setMsg(formatMessage(data.message));
+      } catch {
+        const data = await gql<{
+          approveStep: { success: boolean; message: string; status: string };
+        }>(APPROVE_STEP, { step_run_id: stepRunId });
+        setMsg(formatMessage(data.approveStep.message));
+      }
       await pollOnce();
     } catch (e) {
       setMsg(formatMessage(e));

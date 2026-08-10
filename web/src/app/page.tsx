@@ -123,7 +123,13 @@ export default function HomePage() {
         status: string;
       };
 
+      // Prefer Vercel /api/functions (engine runs on Vercel; Nhost lambda often Unhandled)
       try {
+        r = await callFunction('/trigger-workflow-run', {
+          workflow_id: id,
+          input,
+        });
+      } catch {
         const data = await gql<{
           triggerWorkflowRun: typeof r;
         }>(TRIGGER_RUN, {
@@ -131,12 +137,6 @@ export default function HomePage() {
           input,
         });
         r = data.triggerWorkflowRun;
-      } catch {
-        // Direct engine if GraphQL action schema not yet reloaded
-        r = await callFunction('/trigger-workflow-run', {
-          workflow_id: id,
-          input,
-        });
       }
 
       setMessage(formatMessage(r.message));

@@ -180,7 +180,9 @@ Set environment variables (Production), then redeploy:
 | `NEXT_PUBLIC_NHOST_FUNCTIONS_URL` | `https://<sub>.functions.<region>.nhost.run/v1` |
 | `NHOST_GRAPHQL_URL` | **Same** Constellation URL ending in `/v1` (server-only; create-org) |
 | `NHOST_ADMIN_SECRET` | **Hasura admin secret** from Nhost (server-only; required) |
-| `NHOST_FUNCTIONS_URL` | Functions base (optional; for engine proxy until fully on Vercel) |
+| `GROQ_API_KEY` | Groq key for AI steps (server-only; runs execute on Vercel) |
+| `LLM_STUB` | `false` for real LLM (optional) |
+| `NHOST_FUNCTIONS_URL` | Optional; webhooks/scheduled still on Nhost if used |
 
 **GraphQL path:** Constellation (`*.graphql.*.nhost.run`) uses **`/v1`**. Using `/v1/graphql` returns **404**. Copy the GraphQL URL from Nhost **Project settings → Environment variables** (system), not the legacy Hasura host unless you know you need it.
 

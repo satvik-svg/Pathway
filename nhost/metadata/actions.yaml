@@ -2,7 +2,8 @@ actions:
   - name: triggerWorkflowRun
     definition:
       kind: synchronous
-      handler: '{{NHOST_FUNCTIONS_URL}}/trigger-workflow-run'
+      # Prefer Vercel engine (Nhost functions often return Unhandled without secrets)
+      handler: 'https://pathway-coral.vercel.app/api/functions/trigger-workflow-run'
       forward_client_headers: true
       timeout: 300
     permissions:
@@ -11,7 +12,7 @@ actions:
   - name: approveStep
     definition:
       kind: synchronous
-      handler: '{{NHOST_FUNCTIONS_URL}}/approve-step'
+      handler: 'https://pathway-coral.vercel.app/api/functions/approve-step'
       forward_client_headers: true
       timeout: 300
     permissions:
