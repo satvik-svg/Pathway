@@ -1,6 +1,15 @@
 'use client';
 
-import { NhostClient } from '@nhost/nhost-js';
+/**
+ * IMPORTANT: Use NhostClient from `@nhost/react`, not `@nhost/nhost-js`.
+ *
+ * The React client is constructed with `start: false` so only <NhostProvider>
+ * starts the auth machine. Using the vanilla client starts auth twice, which
+ * double-spends the single-use refresh token and produces:
+ *   POST /v1/token → 401 invalid-refresh-token
+ * even in a fresh incognito window right after login.
+ */
+import { NhostClient } from '@nhost/react';
 import { normalizeGraphqlUrl } from './graphqlUrl';
 
 const subdomain = process.env.NEXT_PUBLIC_NHOST_SUBDOMAIN || 'local';
@@ -19,9 +28,9 @@ function buildNhost() {
     return new NhostClient({
       authUrl: authUrl.replace(/\/$/, ''),
       graphqlUrl,
-      storageUrl: (storageUrl || '').replace(/\/$/, '') || undefined,
-      functionsUrl: (functionsUrl || '').replace(/\/$/, '') || undefined,
-    } as ConstructorParameters<typeof NhostClient>[0]);
+      storageUrl: storageUrl ? storageUrl.replace(/\/$/, '') : undefined,
+      functionsUrl: functionsUrl ? functionsUrl.replace(/\/$/, '') : undefined,
+    });
   }
 
   return new NhostClient({
