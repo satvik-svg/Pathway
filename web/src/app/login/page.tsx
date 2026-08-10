@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignInEmailPassword, useSignUpEmailPassword } from '@nhost/react';
 import { nhost } from '@/lib/nhost';
+import { isSessionNoiseMessage, userFacingMessage } from '@/lib/format';
 
 function LoginForm() {
   const router = useRouter();
@@ -11,12 +12,14 @@ function LoginForm() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  /** Only errors from the last submit — never stale Nhost machine errors */
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
   useEffect(() => {
     if (search.get('reason') === 'session') {
-      setInfo('Your session expired. Please sign in again.');
+      // Friendly note only — do not show raw invalid-refresh-token
+      setInfo('Please sign in again.');
     }
   }, [search]);
 
@@ -27,26 +30,25 @@ function LoginForm() {
     }
   }, [router]);
 
-  const {
-    signInEmailPassword,
-    isLoading: signingIn,
-    error: signInError,
-  } = useSignInEmailPassword();
-  const {
-    signUpEmailPassword,
-    isLoading: signingUp,
-    error: signUpError,
-  } = useSignUpEmailPassword();
+  const { signInEmailPassword, isLoading: signingIn } =
+    useSignInEmailPassword();
+  const { signUpEmailPassword, isLoading: signingUp } =
+    useSignUpEmailPassword();
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     try {
-      // Do NOT wipe localStorage here — it races Nhost token write / refresh.
       if (mode === 'signin') {
         const res = await signInEmailPassword(email, password);
         if (res.isError || res.error) {
-          setError(res.error?.message || signInError?.message || 'Sign in failed');
+          const raw = res.error?.message || 'Sign in failed';
+          // Wrong password is useful; refresh-token noise is not
+          if (isSessionNoiseMessage(raw)) {
+            setError('Please try signing in again.');
+          } else {
+            setError(userFacingMessage(raw) || 'Sign in failed');
+          }
           return;
         }
       } else {
@@ -54,13 +56,23 @@ function LoginForm() {
           displayName: email.split('@')[0],
         });
         if (res.isError || res.error) {
-          setError(res.error?.message || signUpError?.message || 'Sign up failed');
+          const raw = res.error?.message || 'Sign up failed';
+          if (isSessionNoiseMessage(raw)) {
+            setError('Please try again.');
+          } else {
+            setError(userFacingMessage(raw) || 'Sign up failed');
+          }
           return;
         }
       }
       router.replace('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const raw = err instanceof Error ? err.message : String(err);
+      if (isSessionNoiseMessage(raw)) {
+        setError(null);
+        return;
+      }
+      setError(userFacingMessage(raw) || 'Something went wrong');
     }
   }
 
@@ -112,11 +124,7 @@ function LoginForm() {
             />
           </label>
 
-          {(error || signInError || signUpError) && (
-            <p className="text-sm text-red-400">
-              {error || signInError?.message || signUpError?.message}
-            </p>
-          )}
+          {error && <p className="text-sm text-red-400">{error}</p>}
 
           <button
             type="submit"

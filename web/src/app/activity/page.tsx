@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useOrg } from '@/components/OrgContext';
 import { gql, ORG_ACTIVITY } from '@/lib/graphql';
-import { formatMessage } from '@/lib/format';
+import { formatMessage, userFacingMessage } from '@/lib/format';
 
 type NotifyRow = {
   id: string;
@@ -67,7 +67,7 @@ export default function ActivityPage() {
       setNotifies(data.notification_outbox || []);
       setWrites(data.db_write_results || []);
     } catch (e) {
-      setErr(formatMessage(e));
+      setErr(userFacingMessage(e));
     } finally {
       setLoading(false);
     }

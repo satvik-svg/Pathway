@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useOrg } from '@/components/OrgContext';
 import { callFunction } from '@/lib/functions';
-import { formatMessage } from '@/lib/format';
+import { formatMessage, userFacingMessage } from '@/lib/format';
 import type { OrgRole } from '@/lib/types';
 
 type MemberRow = {
@@ -89,7 +89,7 @@ export default function OrgPage() {
       if (!data.success) throw new Error(data.message || 'Failed to load members');
       setMembers(data.members || []);
     } catch (e) {
-      setErr(formatMessage(e));
+      setErr(userFacingMessage(e));
       setMembers([]);
     } finally {
       setLoading(false);
@@ -117,7 +117,7 @@ export default function OrgPage() {
       await refresh();
       if (data.org_id) setOrgId(data.org_id);
     } catch (e) {
-      setErr(formatMessage(e));
+      setErr(userFacingMessage(e));
     } finally {
       setCreating(false);
     }
@@ -144,7 +144,7 @@ export default function OrgPage() {
       setAddEmail('');
       await loadMembers();
     } catch (e) {
-      setErr(formatMessage(e));
+      setErr(userFacingMessage(e));
     } finally {
       setBusyMember(null);
     }
@@ -170,7 +170,7 @@ export default function OrgPage() {
       await loadMembers();
       await refresh();
     } catch (e) {
-      setErr(formatMessage(e));
+      setErr(userFacingMessage(e));
     } finally {
       setBusyMember(null);
     }
@@ -195,7 +195,7 @@ export default function OrgPage() {
       setMsg(data.message || 'Removed');
       await loadMembers();
     } catch (e) {
-      setErr(formatMessage(e));
+      setErr(userFacingMessage(e));
     } finally {
       setBusyMember(null);
     }

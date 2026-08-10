@@ -13,7 +13,7 @@ import {
   gql,
 } from '@/lib/graphql';
 import type { StepType, Workflow } from '@/lib/types';
-import { formatMessage } from '@/lib/format';
+import { formatMessage, userFacingMessage } from '@/lib/format';
 import { callFunction } from '@/lib/functions';
 import { NODE_META } from '@/components/workflow-canvas/nodeMeta';
 import { STATUS_LABEL } from '@/lib/stepSummary';
@@ -91,7 +91,10 @@ export default function HomePage() {
       });
       setWorkflows(data.workflows || []);
     } catch (e) {
-      setMessage(formatMessage(e));
+      {
+        const m = userFacingMessage(e);
+        if (m) setMessage(m);
+      }
     }
   }, [org]);
 
@@ -139,14 +142,21 @@ export default function HomePage() {
         r = data.triggerWorkflowRun;
       }
 
-      setMessage(formatMessage(r.message));
+      {
+        const m = userFacingMessage(r.message) ?? (r.success ? formatMessage(r.message) : null);
+        if (m) setMessage(m);
+        else if (r.success) setMessage(formatMessage(r.message) || 'OK');
+      }
       if (r.workflow_run_id) setActiveRunId(r.workflow_run_id);
       setRunInputFor(null);
       setRunInputText('');
       await refresh();
       await load();
     } catch (e) {
-      setMessage(formatMessage(e));
+      {
+        const m = userFacingMessage(e);
+        if (m) setMessage(m);
+      }
     } finally {
       setBusy(null);
     }
@@ -223,7 +233,10 @@ export default function HomePage() {
       }
       await load();
     } catch (e) {
-      setMessage(formatMessage(e));
+      {
+        const m = userFacingMessage(e);
+        if (m) setMessage(m);
+      }
     } finally {
       setBusy(null);
     }
@@ -294,7 +307,10 @@ export default function HomePage() {
       await refresh();
       await load();
     } catch (e) {
-      setMessage(formatMessage(e));
+      {
+        const m = userFacingMessage(e);
+        if (m) setMessage(m);
+      }
     } finally {
       setBusy(null);
     }
@@ -325,7 +341,10 @@ export default function HomePage() {
       await refresh();
       await load();
     } catch (e) {
-      setMessage(formatMessage(e));
+      {
+        const m = userFacingMessage(e);
+        if (m) setMessage(m);
+      }
     } finally {
       setBusy(null);
     }
@@ -356,7 +375,10 @@ export default function HomePage() {
         await refresh();
         if (data.org_id) setOrgId(data.org_id);
       } catch (err) {
-        setOrgSetupErr(formatMessage(err));
+        {
+          const m = userFacingMessage(err);
+          if (m) setOrgSetupErr(m);
+        }
       } finally {
         setCreatingOrg(false);
       }
