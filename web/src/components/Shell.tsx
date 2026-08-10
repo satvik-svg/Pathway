@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { useAuthenticationStatus, useSignOut, useUserData } from '@nhost/react';
 import { useOrg } from '@/components/OrgContext';
 import { clearNhostLocalSession } from '@/lib/session';
+import { useUnreadNotifications } from '@/hooks/useUnreadNotifications';
 
 const NAV = [
   { href: '/', label: 'Workflows' },
@@ -20,6 +21,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const user = useUserData();
   const { signOut } = useSignOut();
   const { memberships, org, role, setOrgId, loading: orgLoading } = useOrg();
+  const { unread: unreadActivity } = useUnreadNotifications();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && pathname !== '/login') {
@@ -73,19 +75,57 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </Link>
 
             <nav className="flex items-center gap-1 overflow-x-auto scrollbar-none min-w-0">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`shrink-0 rounded-lg px-3 py-1.5 text-sm transition-colors ${
-                    isActive(item.href)
-                      ? 'bg-zinc-800 text-white font-medium'
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {NAV.map((item) => {
+                const showBadge =
+                  item.href === '/activity' &&
+                  unreadActivity > 0 &&
+                  !isActive('/activity');
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`relative shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
+                      isActive(item.href)
+                        ? 'bg-zinc-800 text-white font-medium'
+                        : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900'
+                    }`}
+                    title={
+                      showBadge
+                        ? `${unreadActivity} new notification${unreadActivity === 1 ? '' : 's'}`
+                        : undefined
+                    }
+                  >
+                    {item.href === '/activity' && (
+                      <span className="relative inline-flex" aria-hidden>
+                        <svg
+                          className="h-3.5 w-3.5 opacity-80"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                        </svg>
+                        {showBadge && (
+                          <span className="absolute -right-1 -top-1 flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                          </span>
+                        )}
+                      </span>
+                    )}
+                    <span>{item.label}</span>
+                    {showBadge && (
+                      <span className="min-w-[1.15rem] h-[1.15rem] px-1 rounded-full bg-emerald-500 text-zinc-950 text-[10px] font-bold tabular-nums flex items-center justify-center leading-none">
+                        {unreadActivity > 9 ? '9+' : unreadActivity}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
             </nav>
 
             <div className="ml-auto flex items-center gap-2 sm:gap-3 shrink-0">

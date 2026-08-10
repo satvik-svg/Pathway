@@ -423,3 +423,20 @@ export const ORG_ACTIVITY = `
     }
   }
 `;
+
+/** Unread badge: notifications created after last visit. */
+export const UNREAD_NOTIFICATIONS = `
+  query UnreadNotifications($org_id: uuid!, $since: timestamptz!) {
+    notification_outbox(
+      where: {
+        org_id: { _eq: $org_id }
+        created_at: { _gt: $since }
+      }
+      order_by: { created_at: desc }
+      limit: 99
+    ) {
+      id
+      created_at
+    }
+  }
+`;

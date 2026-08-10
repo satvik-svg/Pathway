@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useOrg } from '@/components/OrgContext';
 import { gql, ORG_ACTIVITY } from '@/lib/graphql';
-import { formatMessage, userFacingMessage } from '@/lib/format';
+import { userFacingMessage } from '@/lib/format';
+import { markActivitySeen } from '@/lib/activitySeen';
 
 type NotifyRow = {
   id: string;
@@ -66,6 +67,8 @@ export default function ActivityPage() {
       }>(ORG_ACTIVITY, { org_id: org.id });
       setNotifies(data.notification_outbox || []);
       setWrites(data.db_write_results || []);
+      // Clear nav badge — user is looking at Activity
+      markActivitySeen(org.id);
     } catch (e) {
       setErr(userFacingMessage(e));
     } finally {
@@ -76,6 +79,13 @@ export default function ActivityPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Poll while on this page so new notify steps appear without manual refresh
+  useEffect(() => {
+    if (!org) return;
+    const t = setInterval(() => void load(), 5000);
+    return () => clearInterval(t);
+  }, [org, load]);
 
   if (orgLoading) {
     return <p className="text-sm text-zinc-500">Loading…</p>;
