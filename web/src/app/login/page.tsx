@@ -1,15 +1,25 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSignInEmailPassword, useSignUpEmailPassword } from '@nhost/react';
+import { clearNhostLocalSession } from '@/lib/session';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const search = useSearchParams();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (search.get('reason') === 'session') {
+      clearNhostLocalSession();
+      setInfo('Your session expired. Please sign in again.');
+    }
+  }, [search]);
 
   const {
     signInEmailPassword,
@@ -26,6 +36,8 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     try {
+      // Drop any half-dead tokens before a clean login
+      clearNhostLocalSession();
       if (mode === 'signin') {
         const res = await signInEmailPassword(email, password);
         if (res.isError || res.error) {
@@ -61,6 +73,12 @@ export default function LoginPage() {
             nhost Auth · org-scoped workflows
           </p>
         </div>
+
+        {info && (
+          <p className="mb-4 rounded-lg border border-amber-800/60 bg-amber-950/40 px-3 py-2 text-sm text-amber-200/90">
+            {info}
+          </p>
+        )}
 
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block text-sm">
@@ -148,5 +166,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-400">
+          Loading…
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

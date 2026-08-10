@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAuthenticationStatus, useSignOut, useUserData } from '@nhost/react';
 import { useOrg } from '@/components/OrgContext';
+import { clearNhostLocalSession } from '@/lib/session';
 
 const NAV = [
   { href: '/', label: 'Workflows' },
@@ -110,7 +111,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 {user?.email}
               </span>
               <button
-                onClick={() => signOut()}
+                onClick={async () => {
+                  await signOut();
+                  clearNhostLocalSession();
+                  router.replace('/login');
+                }}
                 className="text-xs text-zinc-400 hover:text-white border border-zinc-700 hover:border-zinc-500 rounded-lg px-2.5 py-1.5 transition-colors"
               >
                 Sign out

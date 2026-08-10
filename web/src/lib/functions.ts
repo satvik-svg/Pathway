@@ -46,9 +46,13 @@ export async function callFunction<T = Record<string, unknown>>(
   const text = await res.text();
   let json: Record<string, unknown>;
   try {
-    json = JSON.parse(text);
+    json = text ? JSON.parse(text) : {};
   } catch {
-    throw new Error(text || `HTTP ${res.status}`);
+    throw new Error(
+      res.status === 401
+        ? 'Session expired — sign out and sign in again'
+        : `Server returned non-JSON (${res.status}): ${text.slice(0, 80)}`
+    );
   }
   if (!res.ok && !('success' in json)) {
     throw new Error(formatMessage(json.message || json));

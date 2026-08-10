@@ -17,14 +17,31 @@ export async function gql<T = unknown>(
     },
     body: JSON.stringify({ query, variables }),
   });
-  const json = await res.json();
+  const text = await res.text();
+  let json: {
+    data?: T;
+    errors?: { message: string }[];
+    error?: string;
+    message?: string;
+  };
+  try {
+    json = text ? JSON.parse(text) : {};
+  } catch {
+    // HTML error page or proxy failure — not a GraphQL JSON body
+    const snippet = text.slice(0, 80).replace(/\s+/g, ' ');
+    throw new Error(
+      res.status === 401 || res.status === 403
+        ? 'Session expired — sign out and sign in again'
+        : `Server returned non-JSON (${res.status}): ${snippet}`
+    );
+  }
   if (!res.ok && !json.data) {
     throw new Error(
       json.error || json.message || `GraphQL HTTP ${res.status}`
     );
   }
   if (json.errors?.length) {
-    throw new Error(json.errors.map((e: { message: string }) => e.message).join('; '));
+    throw new Error(json.errors.map((e) => e.message).join('; '));
   }
   if (json.data == null) {
     throw new Error('GraphQL returned no data');
