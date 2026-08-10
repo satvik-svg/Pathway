@@ -1,57 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  handleCreateOrganization,
+  handleListOrgMembers,
+  handleManageOrgMember,
+} from '@/lib/server/orgHandlers';
 
 /**
- * Same-origin proxy (Vercel / localhost) → Nhost Functions or local engine.
- * Browser never talks to *.functions.*.nhost.run directly → no CORS.
+ * Browser → same-origin /api/functions/<name>
  *
- * Vercel env (server):
- *   NHOST_FUNCTIONS_URL=https://<subdomain>.functions.<region>.nhost.run/v1
- * Fallback:
- *   NEXT_PUBLIC_NHOST_FUNCTIONS_URL
+ * Org endpoints run on Vercel (reliable).
+ * Other paths proxy to Nhost Functions / local engine if configured.
  */
+
+const LOCAL_HANDLERS = new Set([
+  'create-organization',
+  'list-org-members',
+  'manage-org-member',
+]);
+
 function functionsBase() {
   const raw =
     process.env.NHOST_FUNCTIONS_URL ||
     process.env.NEXT_PUBLIC_NHOST_FUNCTIONS_URL ||
     process.env.NEXT_PUBLIC_FUNCTIONS_URL ||
     '';
-  if (!raw) {
-    return null;
-  }
-  return raw.replace(/\/$/, '');
+  return raw ? raw.replace(/\/$/, '') : null;
 }
 
 function buildTarget(base: string, path: string) {
-  // Nhost cloud base usually ends with /v1
-  // Local engine: http://127.0.0.1:4001
-  if (base.endsWith('/v1') || base.includes('/v1/')) {
-    return `${base.replace(/\/$/, '')}/${path}`;
+  if (base.endsWith('/v1') || base.includes('.nhost.run')) {
+    const b = base.replace(/\/$/, '');
+    if (b.endsWith('/v1')) return `${b}/${path}`;
+    if (b.includes('/v1/')) return `${b.replace(/\/$/, '')}/${path}`;
+    // https://xxx.functions.region.nhost.run → append /v1/name
+    return `${b}/v1/${path}`;
   }
   return `${base}/${path}`;
 }
 
-async function proxy(req: NextRequest, pathParts: string[]) {
-  const path = (pathParts || []).filter(Boolean).join('/');
-  if (!path) {
-    return NextResponse.json(
-      { success: false, message: 'Missing function path' },
-      { status: 400 }
-    );
+async function runLocal(
+  name: string,
+  auth: string | null,
+  body: Record<string, unknown>
+) {
+  try {
+    if (name === 'create-organization') {
+      return await handleCreateOrganization(auth, body);
+    }
+    if (name === 'list-org-members') {
+      return await handleListOrgMembers(auth, body);
+    }
+    if (name === 'manage-org-member') {
+      return await handleManageOrgMember(auth, body);
+    }
+    return {
+      status: 404,
+      data: { success: false, message: `Unknown local handler: ${name}` },
+    };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error(`[api/functions/${name}]`, message);
+    return {
+      status: 200,
+      data: {
+        success: false,
+        message:
+          message.includes('Missing NHOST_') || message.includes('Missing')
+            ? `${message}. Add NHOST_GRAPHQL_URL and NHOST_ADMIN_SECRET in Vercel → Settings → Environment Variables, then redeploy.`
+            : message,
+      },
+    };
   }
+}
 
+async function proxyToNhost(
+  req: NextRequest,
+  path: string,
+  bodyText: string
+) {
   const base = functionsBase();
   if (!base) {
     return NextResponse.json(
       {
         success: false,
         message:
-          'Server missing NHOST_FUNCTIONS_URL (or NEXT_PUBLIC_NHOST_FUNCTIONS_URL). Set it in Vercel to your Nhost Functions base, e.g. https://<subdomain>.functions.<region>.nhost.run/v1',
+          'No NHOST_FUNCTIONS_URL configured for proxy. Org routes run on Vercel; other actions need Functions URL.',
       },
       { status: 500 }
     );
   }
-
-  // Don't proxy to local.functions / localhost on Vercel production
   if (
     process.env.VERCEL &&
     (base.includes('localhost') ||
@@ -62,7 +99,7 @@ async function proxy(req: NextRequest, pathParts: string[]) {
       {
         success: false,
         message:
-          'Vercel is pointing functions at a local URL. Set NHOST_FUNCTIONS_URL to your Nhost cloud Functions URL in the Vercel project env.',
+          'Vercel must not use a local functions URL. Set NHOST_FUNCTIONS_URL to your Nhost cloud functions base.',
       },
       { status: 500 }
     );
@@ -75,18 +112,23 @@ async function proxy(req: NextRequest, pathParts: string[]) {
   const auth = req.headers.get('authorization');
   if (auth) headers.Authorization = auth;
 
-  let body: string | undefined;
-  if (req.method !== 'GET' && req.method !== 'HEAD') {
-    body = await req.text();
-  }
-
   try {
     const res = await fetch(target, {
-      method: req.method,
+      method: 'POST',
       headers,
-      body,
+      body: bodyText,
     });
     const text = await res.text();
+    // Surface Nhost lambda crashes more clearly
+    if (text.includes('problem calling lambda') || res.status >= 500) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Nhost function error (${path}): ${text.slice(0, 300)}. Prefer org APIs on Vercel; ensure functions are deployed and secrets set on Nhost.`,
+        },
+        { status: 200 }
+      );
+    }
     return new NextResponse(text, {
       status: res.status,
       headers: {
@@ -99,7 +141,7 @@ async function proxy(req: NextRequest, pathParts: string[]) {
     return NextResponse.json(
       {
         success: false,
-        message: `Functions proxy failed calling ${target}: ${message}`,
+        message: `Proxy failed (${target}): ${message}`,
       },
       { status: 502 }
     );
@@ -110,8 +152,28 @@ export async function POST(
   req: NextRequest,
   ctx: { params: Promise<{ path: string[] }> }
 ) {
-  const { path } = await ctx.params;
-  return proxy(req, path || []);
+  const { path: parts } = await ctx.params;
+  const name = (parts || []).filter(Boolean).join('/');
+  const auth = req.headers.get('authorization');
+  const bodyText = await req.text();
+  let body: Record<string, unknown> = {};
+  try {
+    body = bodyText ? JSON.parse(bodyText) : {};
+  } catch {
+    return NextResponse.json(
+      { success: false, message: 'Invalid JSON body' },
+      { status: 400 }
+    );
+  }
+
+  // Org management: always on Vercel (fixes Nhost "Unhandled" lambda)
+  if (LOCAL_HANDLERS.has(name)) {
+    const result = await runLocal(name, auth, body);
+    return NextResponse.json(result.data, { status: result.status });
+  }
+
+  // Workflow engine still on Nhost functions / local until fully ported
+  return proxyToNhost(req, name, bodyText);
 }
 
 export async function OPTIONS() {

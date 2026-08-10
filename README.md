@@ -178,9 +178,13 @@ Set environment variables (Production), then redeploy:
 | `NEXT_PUBLIC_NHOST_GRAPHQL_URL` | `https://<sub>.graphql.<region>.nhost.run/v1` |
 | `NEXT_PUBLIC_NHOST_STORAGE_URL` | `https://<sub>.storage.<region>.nhost.run/v1` |
 | `NEXT_PUBLIC_NHOST_FUNCTIONS_URL` | `https://<sub>.functions.<region>.nhost.run/v1` |
-| `NHOST_FUNCTIONS_URL` | **Same functions base** (server-only; required for the proxy) |
+| `NHOST_GRAPHQL_URL` | **Same as GraphQL URL** (server-only; required for create-org) |
+| `NHOST_ADMIN_SECRET` | **Hasura admin secret** from Nhost (server-only; required) |
+| `NHOST_FUNCTIONS_URL` | Functions base (optional; for engine proxy until fully on Vercel) |
 
-Do **not** point Vercel’s `NHOST_FUNCTIONS_URL` at `localhost` or `local.functions`.
+**Critical:** Create organization runs **on Vercel** and needs `NHOST_GRAPHQL_URL` + `NHOST_ADMIN_SECRET`. Without them you get 500 / “Unhandled”.
+
+Do **not** point server env at `localhost` or `local.functions` on Vercel.
 
 ### 3. After deploy
 
