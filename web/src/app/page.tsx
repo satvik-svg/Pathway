@@ -196,17 +196,14 @@ export default function HomePage() {
         message = formatMessage(data.webhookStartRun.message);
         runId = data.webhookStartRun.workflow_run_id || null;
       } catch {
-        const res = await fetch('http://localhost:4001/webhook-trigger', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            input: {
-              webhook_secret: secret,
-              payload,
-            },
-          }),
+        const json = await callFunction<{
+          success?: boolean;
+          message?: string;
+          workflow_run_id?: string;
+        }>('/webhook-trigger', {
+          webhook_secret: secret,
+          payload,
         });
-        const json = await res.json();
         success = !!json.success;
         message = formatMessage(json.message);
         runId = json.workflow_run_id || null;

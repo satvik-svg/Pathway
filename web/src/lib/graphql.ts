@@ -18,8 +18,16 @@ export async function gql<T = unknown>(
     body: JSON.stringify({ query, variables }),
   });
   const json = await res.json();
+  if (!res.ok && !json.data) {
+    throw new Error(
+      json.error || json.message || `GraphQL HTTP ${res.status}`
+    );
+  }
   if (json.errors?.length) {
     throw new Error(json.errors.map((e: { message: string }) => e.message).join('; '));
+  }
+  if (json.data == null) {
+    throw new Error('GraphQL returned no data');
   }
   return json.data as T;
 }

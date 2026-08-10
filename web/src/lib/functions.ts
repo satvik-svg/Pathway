@@ -1,13 +1,11 @@
 'use client';
 
-import { nhost } from './nhost';
+import { getFunctionsUrl, nhost } from './nhost';
 import { formatMessage } from './format';
 
-const FUNCTIONS_BASE =
-  process.env.NEXT_PUBLIC_FUNCTIONS_URL || 'http://localhost:4001';
-
 /**
- * Call local Action handlers with Hasura-style session payload.
+ * Call Nhost / local Action handlers with Hasura-style session payload.
+ * Uses NEXT_PUBLIC_NHOST_FUNCTIONS_URL in production (not localhost).
  */
 export async function callFunction<T = Record<string, unknown>>(
   path: string,
@@ -16,8 +14,10 @@ export async function callFunction<T = Record<string, unknown>>(
   const user = nhost.auth.getUser();
   const token = nhost.auth.getAccessToken();
   const userId = user?.id;
+  const base = getFunctionsUrl();
+  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
 
-  const res = await fetch(`${FUNCTIONS_BASE}${path}`, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
